@@ -1,0 +1,118 @@
+<!-- CorrectHashList.vue -->
+<script setup>
+import { ref, defineProps, watch, computed } from 'vue'
+
+const props = defineProps({
+  list: Array,
+  correctHash: String
+})
+
+const mostCorrectHashes = ref([])
+
+watch(
+    () => [...props.list],
+    (newList) => {
+      const lastHash = newList[newList.length - 1]
+      if (!lastHash || !props.correctHash) return
+
+      const matches = Array.from(lastHash).reduce((acc, char, index) => {
+        if (char === props.correctHash[index]) acc.push(index)
+        return acc
+      }, [])
+
+      if (matches.length > 0) {
+        mostCorrectHashes.value.unshift({
+          hash: lastHash,
+          matches,
+          count: matches.length
+        })
+
+        if (mostCorrectHashes.value.length > 50) {
+          mostCorrectHashes.value.pop()
+        }
+      }
+    },
+    { deep: true, flush: 'post' }
+)
+
+const sortedHashes = computed(() =>
+    [...mostCorrectHashes.value].sort((a, b) => b.count - a.count)
+)
+</script>
+
+<template>
+  <div class="correct-list">
+    <h3>Best Matches (Top 50)</h3>
+    <ul style="list-style: none">
+      <li
+          v-for="(item, index) in sortedHashes"
+          :key="index"
+          class="hash-item"
+      >
+        <div class="hash-string">
+          <span
+              v-for="(char, charIndex) in item.hash"
+              :class="{ 'match-char': item.matches.includes(charIndex) }"
+          >
+            {{ char }}
+          </span>
+        </div>
+        <div class="hash-stats">
+          <span class="count">{{ item.count }} matches</span>
+          <span class="positions">Positions: {{ item.matches.join(', ') }}</span>
+        </div>
+      </li>
+    </ul>
+  </div>
+</template>
+
+<style scoped lang="scss">
+.correct-list {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  height: calc(100vh - 4rem);
+  overflow-y: auto;
+  h3 {
+    margin-bottom: 1rem;
+    color: #2c3e50;
+    font-size: 1.1rem;
+  }
+
+  .hash-item {
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    transition: all 0.3s;
+
+    &:hover {
+      transform: translateX(5px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .hash-string {
+      font-family: monospace;
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+
+      .match-char {
+        color: #2ecc71;
+        font-weight: bold;
+      }
+    }
+
+    .hash-stats {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: #666;
+
+      .count {
+        color: #646cff;
+      }
+    }
+  }
+}
+</style>
